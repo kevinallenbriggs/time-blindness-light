@@ -1,0 +1,32 @@
+#include <Arduino.h>
+
+const int rPin = 9;
+const int gPin = 10;
+const int bPin = 11;
+const int brightness = 5;
+
+void setup() {
+  pinMode(rPin, OUTPUT);
+  pinMode(gPin, OUTPUT);
+  pinMode(bPin, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
+}
+
+void setrgb(int red, int green, int blue) {
+  red = red > 255 ? 255 : red;
+  green = green > 255 ? 255 : green;
+  blue = blue > 255 ? 255 : blue;
+
+  red = red < 0 ? 0 : red;
+  green = green < 0 ? 0 : green;
+  blue = blue < 0 ? 0 : blue;
+
+  analogWrite(rPin, red);
+  analogWrite(gPin, green);
+  analogWrite(bPin, blue);
+}
+
+void loop() {
+  setrgb(brightness, brightness, brightness);
+}
