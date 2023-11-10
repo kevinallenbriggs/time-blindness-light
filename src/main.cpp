@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <Bounce2.h>
 
 // output pins
 const int redPin = 9;
@@ -9,10 +10,7 @@ const int bluePin = 11;
 const int buttonPin = 2;  // momentary switch
 
 // debouncing
-const unsigned int debounceDelay = 15;  // ms
-int buttonState = LOW;
-int lastButtonState = buttonState;
-unsigned long previousDebounce = 0;   // will store last time LED was updated
+Bounce bounce = Bounce();
 
 // LED management
 int brightness = 0;  // how bright the LED is (0-255)
@@ -91,26 +89,25 @@ void setup() {
 
   digitalWrite(LED_BUILTIN, LOW);
   Serial.begin(9600);
+
+  bounce.attach(buttonPin, INPUT);
+  bounce.interval(5);
 }
 
 /**
  * meat and potatoes. runs over and over until powered off.
 */
 void loop() {
-  int buttonReading = digitalRead(buttonPin);
   unsigned long currentMillis = millis();
+  bounce.update();
 
   // ensure timer is a value that makes sense
   if (timer > timeLimit) timer = timeLimit;
 
-  if (buttonReading != lastButtonState) {   // reset debounce timer
-    previousDebounce = currentMillis;
-  }
+  if (bounce.changed()) {
+    int debouncedInput = bounce.read();
 
-  if ((currentMillis - previousDebounce) > debounceDelay && buttonReading != buttonState) {
-    Serial.println("buttonState: " + String(buttonReading));
-
-    if (buttonReading == HIGH && timer == 0) timer = timeLimit;  // set the timer
+    if (debouncedInput == HIGH && timer == 0) timer = timeLimit;  // set the timer
   }
 
   // has enough time gone by to do anything with the timer information?
@@ -145,8 +142,6 @@ void loop() {
     }
   }
 
-  // record the button state
-  lastButtonState = buttonReading;
 }
 
 // legacy pentiometer/brightness stuff
