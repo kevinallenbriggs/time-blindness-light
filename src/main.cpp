@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Bounce2.h>
+#include <MillisTimer.h>
 
 // output pins
 const int redPin = 9;
@@ -17,11 +18,15 @@ int brightness = 0;  // how bright the LED is (0-255)
 // int fadeInterval = 4;  // how many points to fade the LED by; 1024/255 ~= 4
 
 // timer management
-unsigned int timer = 0;
-const unsigned int timeLimit = 10000;   // ms
-const unsigned int interval = 1000; // decrement the timer by this much each second (ms)
-unsigned long previousLoopMillis = 0;   // will store last time LED was updated
-const int phaseCount = 5; // zero-indexed
+const unsigned int phaseLengthMilliseconds = 10000;
+MillisTimer timer1 = MillisTimer(1000);
+int currentPhase = 0;
+const int phaseCount = 5;
+
+// unsigned int timer = 0;
+// const unsigned int timeLimit = 10000;   // ms
+// const unsigned int interval = 1000; // decrement the timer by this much each second (ms)
+// unsigned long previousLoopMillis = 0;   // will store last time LED was updated
 
 // reference
 const int RED = 0;
@@ -30,6 +35,7 @@ const int BLUE = 2;
 const int CYAN = 3;
 const int PURPLE = 4;
 const int YELLOW = 5;
+const int WHITE = 6;
 
 /**
  * Validates data and writes it to the 3 LED analog pins.
@@ -59,6 +65,7 @@ void setColor(int color, int brightness = 255) {
     case CYAN: setrgb(0, brightness, brightness); break;
     case PURPLE: setrgb(brightness, 0, brightness); break;
     case YELLOW: setrgb(brightness, brightness, 0); break;
+    case WHITE: setrgb(255 ,255, 255); break;
     default: setrgb(0,0,0);
   }
 }
@@ -73,6 +80,20 @@ void blink(int color, int count, int brightness) {
     setColor(color, brightness);
     delay(500);
   }
+}
+
+void transitionPhase(MillisTimer &mt) {
+    switch(currentPhase) {
+      case 1: setColor(GREEN, brightness); break;
+      case 2: setColor(CYAN, brightness); break;
+      case 3: setColor(PURPLE, brightness); break;
+      case 4: setColor(YELLOW, brightness); break;
+      case 5: setColor(RED, brightness); break;
+      case 6: blink(RED, 3, brightness); break;
+      default: setrgb(0, 0, 0); break;
+    }
+
+    Serial.println("phase: " + String(currentPhase));
 }
 
 /**
@@ -91,56 +112,74 @@ void setup() {
   Serial.begin(9600);
 
   bounce.attach(buttonPin, INPUT);
-  bounce.interval(5);
+  bounce.interval(15);
+
+  timer1.setInterval(phaseLengthMilliseconds);
+  timer1.expiredHandler(transitionPhase);
+  timer1.setRepeats(phaseCount);
 }
 
 /**
  * meat and potatoes. runs over and over until powered off.
 */
 void loop() {
-  unsigned long currentMillis = millis();
+  // unsigned long currentMillis = millis();
   bounce.update();
+  timer1.run();
 
   // ensure timer is a value that makes sense
-  if (timer > timeLimit) timer = timeLimit;
+  // if (timer > timeLimit) timer = timeLimit;
 
   if (bounce.changed()) {
-    int debouncedInput = bounce.read();
 
-    if (debouncedInput == HIGH && timer == 0) timer = timeLimit;  // set the timer
-  }
-
-  // has enough time gone by to do anything with the timer information?
-  if (currentMillis - previousLoopMillis >= interval) {
-    previousLoopMillis = currentMillis;
-
-    // Serial.println("buttonReading: " + String(buttonReading));
-    Serial.println("timer: " + String(timer));
-
-    brightness = (timer > 0) ? 255 : 0;   // placeholder for color & pentiometer stuff
-
-    int phase = timer == 0 ? phaseCount + 1 : map(timer, timeLimit, 0, 0, phaseCount);   // map the time elapsed to one of 5 phases
-    Serial.println("phase: " + String(phase));
-
-    switch(phase) {
-      case 0: setColor(GREEN, brightness); break;
-      case 1: setColor(CYAN, brightness); break;
-      case 2: setColor(PURPLE, brightness); break;
-      case 3: setColor(YELLOW, brightness); break;
-      case 4: setColor(RED, brightness); break;
-      default: setrgb(0, 0, 0); break;
-    }
-
-    if (timer > 0) {
-      timer -= interval;
-
-      // unsigned int "wraps" to high positive value when below 0
-      if (timer < interval || timer > timeLimit) {
-        blink(RED, 3, brightness);
-        timer = 0;
-      }
+    // if (debouncedInput == HIGH && timer == 0) timer = timeLimit;  // set the timer
+    if (bounce.rose()) {
+      // currentPhase += 1;
+      timer1.start();
     }
   }
+
+  if (! timer1.isRunning()) {
+    Serial.println("Timer not running");
+    delay(1000);
+  } else {
+    Serial.println("remaining time" + timer1.getRemainingTime());
+    delay(1000);
+  }
+
+  Serial.println("current phase: " + currentPhase);
+
+  // // has enough time gone by to do anything with the timer information?
+  // if (currentMillis - previousLoopMillis >= interval) {
+  //   previousLoopMillis = currentMillis;
+
+  //   // Serial.println("buttonReading: " + String(buttonReading));
+  //   Serial.println("timer: " + String(timer));
+
+  //   brightness = (timer > 0) ? 255 : 0;   // placeholder for color & pentiometer stuff
+
+  //   int phase = timer == 0 ? phaseCount + 1 : map(timer, timeLimit, 0, 0, phaseCount);   // map the time elapsed to one of 5 phases
+  //   Serial.println("phase: " + String(phase));
+
+  //   switch(phase) {
+  //     case 0: setColor(GREEN, brightness); break;
+  //     case 1: setColor(CYAN, brightness); break;
+  //     case 2: setColor(PURPLE, brightness); break;
+  //     case 3: setColor(YELLOW, brightness); break;
+  //     case 4: setColor(RED, brightness); break;
+  //     default: setrgb(0, 0, 0); break;
+  //   }
+
+  //   if (timer > 0) {
+  //     timer -= interval;
+
+  //     // unsigned int "wraps" to high positive value when below 0
+  //     if (timer < interval || timer > timeLimit) {
+  //       blink(RED, 3, brightness);
+  //       timer = 0;
+  //     }
+  //   }
+  // }
 
 }
 
