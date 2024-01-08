@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Bounce2.h>
+#include <arduino-timer.h>
 
 // output pins
 const int redPin = 9;
