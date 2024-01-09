@@ -18,9 +18,9 @@ int brightness = 0;  // how bright the LED is (0-255)
 
 // timer management
 auto timer = timer_create_default();
-const unsigned int phaseTimeLimitMillis = 3000;   // ms
+const unsigned int phaseTimeLimitMillis = 2000;   // ms
 unsigned int currentPhase = 0;
-const int phaseCount = 5;
+const int phaseCount = 6;
 
 // reference
 const int RED = 0;
@@ -74,6 +74,16 @@ void blink(int color, int count, int brightness) {
   }
 }
 
+bool phaseChange(void *arg) {
+  Serial.println("current phase: " + String(currentPhase));
+
+  currentPhase = (currentPhase > phaseCount) ? 0 : currentPhase + 1;
+
+  Serial.println("new phase: " + String(currentPhase));
+
+  return (currentPhase == 0) ? false : true;
+}
+
 /**
  * define inputs and outputs, start serial connections, set state or anything
  * else that only need be run once.
@@ -93,20 +103,6 @@ void setup() {
   bounce.interval(5);
 }
 
-bool phaseChange(void *phase) {
-  Serial.println("current phase: " + String(currentPhase));
-  if (currentPhase == 0) {
-    currentPhase = ++currentPhase;
-  } else if (currentPhase > phaseCount) {
-    currentPhase = 0;
-  } else {
-    currentPhase++;
-  }
-
-  Serial.println("new phase: " + String(currentPhase));
-  return true;
-} // phaseChange
-
 /**
  * meat and potatoes. runs over and over until powered off.
 */
@@ -114,34 +110,39 @@ void loop() {
   timer.tick();
   bounce.update();
 
+  const int ticks = timer.ticks();
+
   // detect button push
   if (bounce.changed()) {
     int debouncedInput = bounce.read();
 
     if (debouncedInput == HIGH) {
+      if (currentPhase == 0) {
+        currentPhase = 1;
+      }
+
       timer.every(phaseTimeLimitMillis, phaseChange);
     } /* else if (debouncedInput == HIGH) {
       timer.cancel();
     } */
   }
 
-    const int ticks = timer.ticks();
-    if (ticks && ticks % 1000 == 0) {
-      Serial.println("timer: " + String(timer.ticks()));
-      Serial.println("phase: " + String(currentPhase));
-    }
+  if (ticks && ticks % 1000 == 0) {
+    Serial.println("timer: " + String(timer.ticks()));
+    Serial.println("phase: " + String(currentPhase));
+  }
 
-    brightness = (currentPhase > 0) ? 255 : 0;   // placeholder for color & pentiometer stuff
+  brightness = (currentPhase > 0) ? 255 : 0;   // placeholder for color & pentiometer stuff
 
-    switch(currentPhase) {
-      case 1: setColor(GREEN, brightness); break;
-      case 2: setColor(CYAN, brightness); break;
-      case 3: setColor(PURPLE, brightness); break;
-      case 4: setColor(YELLOW, brightness); break;
-      case 5: setColor(RED, brightness); break;
-      case 6: blink(RED, 3, brightness); break;
-      default: setrgb(0, 0, 0); break;
-    }
+  switch(currentPhase) {
+    case 1: setColor(GREEN, brightness); break;
+    case 2: setColor(CYAN, brightness); break;
+    case 3: setColor(PURPLE, brightness); break;
+    case 4: setColor(YELLOW, brightness); break;
+    case 5: setColor(RED, brightness); break;
+    case 6: blink(RED, 5, brightness); break;
+    default: setrgb(0, 0, 0); break;
+  }
 }
 
 // legacy pentiometer/brightness stuff
