@@ -69,7 +69,7 @@ void blink(int color, int count) {
   }
 }
 
-bool phaseChange(void *arg) {
+bool changePhase(void *arg) {
   Serial.println("current phase: " + String(currentPhase));
 
   currentPhase = (currentPhase > phaseCount) ? 0 : currentPhase + 1;
@@ -90,7 +90,7 @@ void toggleTimer() {
     currentPhase = 1;
   }
 
-  timer.every(phaseTimeLimitMillis, phaseChange);
+  timer.every(phaseTimeLimitMillis, changePhase);
 }
 
 /**
