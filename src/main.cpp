@@ -15,14 +15,12 @@ Bounce bounce = Bounce();
 
 // LED management
 int brightness = 0;  // how bright the LED is (0-255)
-// int fadeInterval = 4;  // how many points to fade the LED by; 1024/255 ~= 4
 
 // timer management
-unsigned int timer = 0;
-const unsigned int timeLimit = 10000;   // ms
-const unsigned int interval = 1000; // decrement the timer by this much each second (ms)
-unsigned long previousLoopMillis = 0;   // will store last time LED was updated
-const int phaseCount = 5; // zero-indexed
+auto timer = timer_create_default();
+const unsigned int phaseTimeLimitMillis = 3000;   // ms
+unsigned int currentPhase = 0;
+const int phaseCount = 5;
 
 // reference
 const int RED = 0;
@@ -95,54 +93,55 @@ void setup() {
   bounce.interval(5);
 }
 
+bool phaseChange(void *phase) {
+  Serial.println("current phase: " + String(currentPhase));
+  if (currentPhase == 0) {
+    currentPhase = ++currentPhase;
+  } else if (currentPhase > phaseCount) {
+    currentPhase = 0;
+  } else {
+    currentPhase++;
+  }
+
+  Serial.println("new phase: " + String(currentPhase));
+  return true;
+} // phaseChange
+
 /**
  * meat and potatoes. runs over and over until powered off.
 */
 void loop() {
-  unsigned long currentMillis = millis();
+  timer.tick();
   bounce.update();
 
-  // ensure timer is a value that makes sense
-  if (timer > timeLimit) timer = timeLimit;
-
+  // detect button push
   if (bounce.changed()) {
     int debouncedInput = bounce.read();
 
-    if (debouncedInput == HIGH && timer == 0) timer = timeLimit;  // set the timer
+    if (debouncedInput == HIGH) {
+      timer.every(phaseTimeLimitMillis, phaseChange);
+    } /* else if (debouncedInput == HIGH) {
+      timer.cancel();
+    } */
   }
 
-  // has enough time gone by to do anything with the timer information?
-  if (currentMillis - previousLoopMillis >= interval) {
-    previousLoopMillis = currentMillis;
+    const int ticks = timer.ticks();
+    if (ticks && ticks % 1000 == 0) {
+      Serial.println("timer: " + String(timer.ticks()));
+      Serial.println("phase: " + String(currentPhase));
+    }
 
-    // Serial.println("buttonReading: " + String(buttonReading));
-    Serial.println("timer: " + String(timer));
+    brightness = (currentPhase > 0) ? 255 : 0;   // placeholder for color & pentiometer stuff
 
-    brightness = (timer > 0) ? 255 : 0;   // placeholder for color & pentiometer stuff
-
-    int phase = timer == 0 ? phaseCount + 1 : map(timer, timeLimit, 0, 0, phaseCount);   // map the time elapsed to one of 5 phases
-    Serial.println("phase: " + String(phase));
-
-    switch(phase) {
-      case 0: setColor(GREEN, brightness); break;
-      case 1: setColor(CYAN, brightness); break;
-      case 2: setColor(PURPLE, brightness); break;
-      case 3: setColor(YELLOW, brightness); break;
-      case 4: setColor(RED, brightness); break;
+    switch(currentPhase) {
+      case 1: setColor(GREEN, brightness); break;
+      case 2: setColor(CYAN, brightness); break;
+      case 3: setColor(PURPLE, brightness); break;
+      case 4: setColor(YELLOW, brightness); break;
+      case 5: setColor(RED, brightness); break;
+      case 6: blink(RED, 3, brightness); break;
       default: setrgb(0, 0, 0); break;
     }
-
-    if (timer > 0) {
-      timer -= interval;
-
-      // unsigned int "wraps" to high positive value when below 0
-      if (timer < interval || timer > timeLimit) {
-        blink(RED, 3, brightness);
-        timer = 0;
-      }
-    }
-  }
-
 }
 
 // legacy pentiometer/brightness stuff
