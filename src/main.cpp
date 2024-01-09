@@ -2,19 +2,14 @@
 #include <Bounce2.h>
 #include <arduino-timer.h>
 
-// output pins
+// pins
 const int redPin = 9;
 const int greenPin = 10;
 const int bluePin = 11;
-
-// input pins
 const int buttonPin = 2;  // momentary switch
 
 // debouncing
 Bounce bounce = Bounce();
-
-// LED management
-int brightness = 0;  // how bright the LED is (0-255)
 
 // timer management
 auto timer = timer_create_default();
@@ -48,16 +43,16 @@ void setrgb(int red, int green, int blue) {
 }
 
 /**
- * Set an LED color and brightness using the constants defined in this script.
+ * Set an LED color and value using the constants defined in this script.
 */
-void setColor(int color, int brightness = 255) {
+void setColor(int color, int value = 255) {
   switch (color) {
-    case RED: setrgb(brightness, 0, 0); break;
-    case BLUE: setrgb(0, 0, brightness); break;
-    case GREEN: setrgb(0, brightness, 0); break;
-    case CYAN: setrgb(0, brightness, brightness); break;
-    case PURPLE: setrgb(brightness, 0, brightness); break;
-    case YELLOW: setrgb(brightness, brightness, 0); break;
+    case RED: setrgb(value, 0, 0); break;
+    case BLUE: setrgb(0, 0, value); break;
+    case GREEN: setrgb(0, value, 0); break;
+    case CYAN: setrgb(0, value, value); break;
+    case PURPLE: setrgb(value, 0, value); break;
+    case YELLOW: setrgb(value, value, 0); break;
     default: setrgb(0,0,0);
   }
 }
@@ -65,11 +60,11 @@ void setColor(int color, int brightness = 255) {
 /**
  * Blink the LEDs.
 */
-void blink(int color, int count, int brightness) {
+void blink(int color, int count) {
   for (int i = 1; i <= count; i++) {
     setrgb(0, 0, 0);
     delay(500);
-    setColor(color, brightness);
+    setColor(color);
     delay(500);
   }
 }
@@ -82,6 +77,20 @@ bool phaseChange(void *arg) {
   Serial.println("new phase: " + String(currentPhase));
 
   return (currentPhase == 0) ? false : true;
+}
+
+void toggleTimer() {
+  if (! timer.empty()) {
+    currentPhase = 0;
+    timer.cancel();
+    return;
+  }
+
+  if (currentPhase == 0) {
+    currentPhase = 1;
+  }
+
+  timer.every(phaseTimeLimitMillis, phaseChange);
 }
 
 /**
@@ -110,51 +119,24 @@ void loop() {
   timer.tick();
   bounce.update();
 
+  // react to button push
+  if (bounce.changed() && bounce.read() == HIGH) toggleTimer();
+
+  // debugging
   const int ticks = timer.ticks();
-
-  // detect button push
-  if (bounce.changed()) {
-    int debouncedInput = bounce.read();
-
-    if (debouncedInput == HIGH) {
-      if (currentPhase == 0) {
-        currentPhase = 1;
-      }
-
-      timer.every(phaseTimeLimitMillis, phaseChange);
-    } /* else if (debouncedInput == HIGH) {
-      timer.cancel();
-    } */
-  }
-
   if (ticks && ticks % 1000 == 0) {
     Serial.println("timer: " + String(timer.ticks()));
     Serial.println("phase: " + String(currentPhase));
   }
 
-  brightness = (currentPhase > 0) ? 255 : 0;   // placeholder for color & pentiometer stuff
-
+  // set LED color
   switch(currentPhase) {
-    case 1: setColor(GREEN, brightness); break;
-    case 2: setColor(CYAN, brightness); break;
-    case 3: setColor(PURPLE, brightness); break;
-    case 4: setColor(YELLOW, brightness); break;
-    case 5: setColor(RED, brightness); break;
-    case 6: blink(RED, 5, brightness); break;
+    case 1: setColor(GREEN); break;
+    case 2: setColor(CYAN); break;
+    case 3: setColor(PURPLE); break;
+    case 4: setColor(YELLOW); break;
+    case 5: setColor(RED); break;
+    case 6: blink(RED, 5); break;
     default: setrgb(0, 0, 0); break;
   }
 }
-
-// legacy pentiometer/brightness stuff
-      //   int sensorValue = analogRead(pentPin);
-      //   int newBrightness = 0;
-      //   newBrightness = sensorValue / fadeInterval;
-
-      //   // ensure limits
-      //   if (newBrightness <= 5 ) newBrightness = 5;
-      //   if ( newBrightness >= 255) newBrightness = 255;
-
-      //   brightness = newBrightness;
-
-      //   // set the brightness of the LED
-      //   analogWrite(ledPin, newBrightness);
