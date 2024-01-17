@@ -12,13 +12,15 @@ const int buttonPin = 2;  // momentary switch
 Bounce bounce = Bounce();
 
 // timer management
-auto timer = timer_create_default();
 const unsigned long MINUTE_IN_MS = 60UL * 1000UL;
-const unsigned long phaseTimeLimitMillis = 10UL * MINUTE_IN_MS;   // 10 min
+const unsigned long FIVE_MINUTES_IN_MS = 5UL * MINUTE_IN_MS;
+const unsigned long TEN_MINUTES_IN_MS = 10UL * MINUTE_IN_MS;
+const unsigned long phaseTimeLimitMillis = FIVE_MINUTES_IN_MS;
 unsigned int currentPhase = 0;
 const int phaseCount = 6;
+auto timer = timer_create_default();
 
-// reference
+// color constants for readability
 const int RED = 0;
 const int GREEN = 1;
 const int BLUE = 2;
@@ -72,9 +74,7 @@ void blink(int color, int count) {
 
 bool changePhase(void *arg) {
   Serial.println("current phase: " + String(currentPhase));
-
   currentPhase = (currentPhase > phaseCount) ? 0 : currentPhase + 1;
-
   Serial.println("new phase: " + String(currentPhase));
 
   return (currentPhase == 0) ? false : true;
