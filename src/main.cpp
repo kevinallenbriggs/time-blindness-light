@@ -139,7 +139,7 @@ void loop() {
     case 3: setColor(PURPLE); break;
     case 4: setColor(YELLOW); break;
     case 5: setColor(RED); break;
-    case 6: blink(RED, 5); break;
+    case 6: blink(RED); toggleTimer(); break;
     default: setrgb(0, 0, 0); break;
   }
 }
