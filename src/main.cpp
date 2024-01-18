@@ -18,7 +18,7 @@ const unsigned long TEN_MINUTES_IN_MS = 10UL * MINUTE_IN_MS;
 const unsigned long phaseTimeLimitMillis = FIVE_MINUTES_IN_MS;
 unsigned int currentPhase = 0;
 const int phaseCount = 6;
-auto timer = timer_create_default();
+auto phaseTimer = timer_create_default();
 
 // color constants for readability
 const int RED = 0;
@@ -81,9 +81,9 @@ bool changePhase(void *arg) {
 }
 
 void toggleTimer() {
-  if (! timer.empty()) {
+  if (! phaseTimer.empty()) {
     currentPhase = 0;
-    timer.cancel();
+    phaseTimer.cancel();
     return;
   }
 
@@ -91,7 +91,7 @@ void toggleTimer() {
     currentPhase = 1;
   }
 
-  timer.every(phaseTimeLimitMillis, changePhase);
+  phaseTimer.every(phaseTimeLimitMillis, changePhase);
 }
 
 /**
@@ -108,6 +108,7 @@ void setup() {
 
   digitalWrite(LED_BUILTIN, LOW);
   Serial.begin(9600);
+  Serial.println("phase time limit: " + String(phaseTimeLimitMillis));
 
   bounce.attach(buttonPin, INPUT);
   bounce.interval(5);
@@ -117,16 +118,16 @@ void setup() {
  * meat and potatoes. runs over and over until powered off.
 */
 void loop() {
-  timer.tick();
+  phaseTimer.tick();
   bounce.update();
 
   // react to button push
   if (bounce.changed() && bounce.read() == HIGH) toggleTimer();
 
   // debugging
-  const int ticks = timer.ticks();
+  const int ticks = phaseTimer.ticks();
   if (ticks && ticks % 1000 == 0) {
-    Serial.println("timer: " + String(timer.ticks()));
+    Serial.println("timer: " + String(phaseTimer.ticks()));
     Serial.println("phase: " + String(currentPhase));
   }
 
