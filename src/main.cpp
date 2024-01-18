@@ -61,7 +61,7 @@ void setColor(int color, int value = 255) {
 /**
  * Blink the LEDs.
 */
-void blink(int color, int count) {
+void blink(int color, int count = 6) {
   for (int i = 1; i <= count; i++) {
     setrgb(0, 0, 0);
     delay(500);
