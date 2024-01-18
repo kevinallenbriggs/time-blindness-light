@@ -13,9 +13,7 @@ Bounce bounce = Bounce();
 
 // timer management
 const unsigned long MINUTE_IN_MS = 60UL * 1000UL;
-const unsigned long FIVE_MINUTES_IN_MS = 5UL * MINUTE_IN_MS;
-const unsigned long TEN_MINUTES_IN_MS = 10UL * MINUTE_IN_MS;
-const unsigned long phaseTimeLimitMillis = FIVE_MINUTES_IN_MS;
+const unsigned long phaseTimeLimitMillis = 9UL * MINUTE_IN_MS;
 unsigned int currentPhase = 0;
 const int phaseCount = 6;
 auto phaseTimer = timer_create_default();
